@@ -1,6 +1,6 @@
 // يحفظ ملفات التطبيق ليعمل دون إنترنت. عند تغيير أي ملف، غيّر رقم الإصدار أدناه.
-var CACHE = "dalil-v2";
-var FILES = ["./", "./index.html", "./style.css", "./data.js", "./app.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
+var CACHE = "dalil-v3";
+var FILES = ["./", "./index.html", "./style.css", "./data.js", "./db.js", "./app.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }));

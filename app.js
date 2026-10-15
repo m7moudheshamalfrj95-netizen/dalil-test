@@ -1,12 +1,11 @@
 (function () {
   "use strict";
 
-  var D = window.DATA;
+  var D = null; // تُملأ من التخزين المحلي عند بدء التطبيق (انظر آخر الملف)
   var view = document.getElementById("view");
   var backEl = document.getElementById("back");
   var titleEl = document.getElementById("title");
   var offlineEl = document.getElementById("offline");
-  var DRAFT_KEY = "dalil_draft_complaint";
 
   // ---------- أدوات صغيرة ----------
   function esc(s) {
@@ -239,10 +238,8 @@
       '<div class="actions"><a class="btn" href="#/complaints/new">اكتب شكوى</a></div>' + updatedLine(D.updated.complaints);
     return { title: "شكاوى أبناء القرية", back: "#/", html: html };
   }
-  function loadDraft() {
-    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}") || {}; } catch (e) { return {}; }
-  }
-  function saveDraft(d) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) { /* التخزين غير متاح */ } }
+  function loadDraft() { return D.draft || {}; }
+  function saveDraft(d) { D.draft = d; window.Store.saveDraft(d); }
   function pageComplaintNew() {
     var d = loadDraft();
     var html = '<div class="note">نسخة تجريبية: لن تُرسل الشكوى لأي جهة بعد. تُحفظ مسودتك على هاتفك فقط حتى لا تضيع.</div>' +
@@ -305,6 +302,12 @@
       "<p>دليل محلي يجمع خدمات القرية والقرى المجاورة وإعلاناتها وصورها وشكاوى أهلها.</p>" +
       "<p>الإدارة هي التي تضيف المعلومات وتراجع كل صورة أو شكوى قبل نشرها.</p>" +
       '<p class="note">طريقة التواصل مع الإدارة ستُضاف هنا لاحقاً.</p>';
+    var m = D.meta || {};
+    html += "<h2>معلومات للاختبار</h2>" +
+      '<p class="muted">مصدر البيانات: ' + (m.source === "indexeddb" ? "تخزين الهاتف (IndexedDB)" : "ذاكرة مؤقتة (التخزين غير متاح في هذا المتصفح)") + "</p>" +
+      (m.opens ? '<p class="muted">عدد مرات فتح التطبيق على هذا الهاتف: ' + esc(m.opens) + "</p>" : "") +
+      (m.seededAt ? '<p class="muted">وقت تحميل البيانات التجريبية: ' + esc(m.seededAt.slice(0, 10)) + "</p>" : "") +
+      '<p class="muted">السجلات: خدمات ' + D.services.length + " · إعلانات " + D.ads.length + " · صور " + D.photos.length + " · خطوط " + D.routes.length + "</p>";
     return { title: "عن التطبيق", back: "#/", html: html };
   }
   function pageNotFound(back) {
@@ -313,6 +316,7 @@
 
   // ---------- التوجيه ----------
   function route() {
+    if (!D) { return; }
     var raw = location.hash.replace(/^#\/?/, "");
     var qi = raw.indexOf("?");
     var path = qi === -1 ? raw : raw.slice(0, qi);
@@ -348,7 +352,12 @@
   window.addEventListener("offline", updateNet);
   window.addEventListener("hashchange", route);
   updateNet();
-  route();
+
+  // نحمّل البيانات من تخزين الهاتف أولاً، ثم نعرض الصفحة
+  window.Store.init(window.DATA).then(function (data) {
+    D = data;
+    route();
+  });
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(function () { /* يعمل التطبيق بدونه لكن دون وضع عدم الاتصال */ });
